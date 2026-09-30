@@ -2,7 +2,13 @@
 # requires-python = ">=3.11"
 # dependencies = ["numpy", "matplotlib"]
 # ///
-"""Figures for Lecture 1.  Run from this folder with: uv run make_figures_l01.py"""
+"""Figures for Lecture 1: Introduction to Machine Learning.
+
+Run from any folder with: uv run codes/l01_figures.py
+The figures are written to slides/figures/.
+"""
+
+from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,10 +22,11 @@ plt.rcParams.update({
     "axes.titlesize": 13,
 })
 rng = np.random.default_rng(0)
+OUT = Path(__file__).resolve().parent.parent / "slides" / "figures"
 
 
 def save(fig, name):
-    fig.savefig(name, bbox_inches="tight")
+    fig.savefig(OUT / name, bbox_inches="tight", metadata={"CreationDate": None})
     plt.close(fig)
 
 
