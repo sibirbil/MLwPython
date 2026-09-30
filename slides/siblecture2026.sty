@@ -1,0 +1,257 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% siblecture2026.sty --- lecture slides, on top of the sibbeamer2026 theme.
+%%
+%% Author : S. Ilker Birbil  <s.i.birbil@uva.nl>
+%% Date   : September 2026
+%%
+%% This file is the teaching layer only.  Everything visual --- the UvA
+%% colours, the title page, the frame title bar, the footline and its progress
+%% rule, the section divider, \sibtitleframe, \sibtocframe, \sibendframe,
+%% takeaway, sibbox, \highlight --- comes from sibbeamer2026, which is loaded
+%% here and reached through a symbolic link to the single copy in _templates/.
+%% A change to the house style therefore reaches the talks and the lectures at
+%% once, and the two cannot drift apart.
+%%
+%% Usage  : \documentclass[aspectratio=169,t,9pt]{beamer}
+%%          \usepackage[macros]{siblecture2026}
+%%          Compile with: latexmk -pdf lecture01
+%%
+%% Options of its own
+%%   notes       speaker notes beside the slide, for a second screen
+%%   notesonly   the notes alone, without the slides
+%%   solutions   typeset the solution environments; they are dropped otherwise
+%%   twoup       two slides per A4 page, for a printed handout
+%%   fourup      four slides per A4 page
+%%
+%% Any other option is passed to sibbeamer2026, so macros, helvet, lato, dark,
+%% nologo, nosectionpage, nofooter and noprogress all work here too.
+%%
+%% Overlays are collapsed by the class option, not by a package option:
+%%   \documentclass[handout,aspectratio=169,t,9pt]{beamer}
+%% template-handout.tex does this for you in three lines, so that one source
+%% file gives both the lecture and the printable handout.
+%%
+%% Commands and environments added on top of sibbeamer2026
+%%   \course{...} \coursesubtitle{...}   the two lines above the lecture title
+%%   \term{...}                          teaching period, under the date
+%%   \lectureno{1}                       makes the title read `Lecture 1: ...'
+%%                                       and the footline read `Lecture 1'
+%%   objectives environment              the what-you-will-be-able-to-do list
+%%   keypoint environment                {<title>}, the point to remember
+%%   recap environment                   what the previous lecture established
+%%   comingup environment                the pointer to the next lecture
+%%   exercise environment                [<prompt>], numbered, for use in class
+%%   solution environment                shown only under the solutions option
+%%
+%% Beamer's own definition, example, theorem and lemma environments are styled
+%% to match and are the right choice for stating mathematics; the environments
+%% above are for the pedagogical furniture around it.
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{siblecture2026}[2026/09/30 v1.0 UvA lecture slides]
+
+%% ----------------------------------------------------------------- options --
+
+\newif\ifsib@notes      \sib@notesfalse
+\newif\ifsib@notesonly  \sib@notesonlyfalse
+\newif\ifsib@solutions  \sib@solutionsfalse
+\newif\ifsib@twoup      \sib@twoupfalse
+\newif\ifsib@fourup     \sib@fourupfalse
+
+\DeclareOption{notes}{\sib@notestrue}
+\DeclareOption{notesonly}{\sib@notesonlytrue}
+\DeclareOption{solutions}{\sib@solutionstrue}
+\DeclareOption{twoup}{\sib@twouptrue}
+\DeclareOption{fourup}{\sib@fouruptrue}
+\DeclareOption*{\PassOptionsToPackage{\CurrentOption}{sibbeamer2026}}
+\ProcessOptions\relax
+
+\RequirePackage{sibbeamer2026}
+\RequirePackage{environ}   % captures a solution body so it can be dropped
+\RequirePackage{pifont}    % \ding{51}, the objectives check mark
+
+%% Lecture slides start lower than talk slides: there is usually a sentence of
+%% setting before the first display, and the example lectures opened nearly
+%% every frame with a manual \vspace{0.5cm} to buy that air.  Widening the gap
+%% here makes those by-hand corrections unnecessary.
+\setlength{\sibframetitlegap}{0.40cm}
+
+%% Figures live in figures/ in a lecture folder, so that \includegraphics can
+%% name the file alone.  The paths already written as figures/<file> still work.
+\graphicspath{{figures/}{./}}
+
+%% ------------------------------------------------------------------- pages --
+%% pgfpages drives both the notes and the n-up handout, and it takes one
+%% layout, so the two cannot be combined.
+
+\ifsib@notesonly
+  \setbeameroption{show only notes}
+\else
+  \ifsib@notes
+    \setbeameroption{show notes on second screen=right}
+  \fi
+\fi
+
+\ifsib@twoup
+  \ifsib@fourup\PackageError{siblecture2026}
+    {Options `twoup' and `fourup' are mutually exclusive}{Choose one.}\fi
+  \ifsib@notes\PackageError{siblecture2026}
+    {Options `notes' and `twoup' both need the pgfpages layout}
+    {Build the notes and the handout separately.}\fi
+  \RequirePackage{pgfpages}
+  \pgfpagesuselayout{2 on 1}[a4paper,border shrink=5mm]
+\fi
+\ifsib@fourup
+  \ifsib@notes\PackageError{siblecture2026}
+    {Options `notes' and `fourup' both need the pgfpages layout}
+    {Build the notes and the handout separately.}\fi
+  \RequirePackage{pgfpages}
+  \pgfpagesuselayout{4 on 1}[a4paper,landscape,border shrink=5mm]
+\fi
+
+%% Notes carry the spoken argument, so they are set in a readable size.
+\setbeamerfont{note page}{size=\small}
+\setbeamercolor{note page}{fg=uvaBlack,bg=white}
+
+%% ---------------------------------------------------------------- metadata --
+
+\newcommand{\sib@term}{}
+\newcommand{\sib@lectureno}{}
+
+%% The course and its subtitle are the two lines the base theme already prints
+%% above the title; naming them after the course is what a lecture needs.
+\newcommand{\course}[1]{\event{#1}}
+\newcommand{\coursesubtitle}[1]{\eventdetail{#1}}
+\newcommand{\term}[1]{\renewcommand{\sib@term}{#1}}
+
+%% \lectureno{1} is the single place the number is written: the displayed
+%% title becomes `Lecture 1: <title>' and the footline shows `Lecture 1'.
+%% The order of \lectureno and \title does not matter, because both effects
+%% are resolved at the point of use rather than at the point of definition.
+\newcommand{\lectureno}[1]{\renewcommand{\sib@lectureno}{#1}}
+
+%% The footline shows the short title.  \title{X} leaves Beamer's
+%% \beamer@shorttitle equal to \inserttitle, and that is exactly the case
+%% where `Lecture 1' is the better running head; an explicit \title[...]{...}
+%% means a running head was chosen on purpose and is left alone.  The two are
+%% compared rather than \insertshorttitle, which wraps \beamer@shorttitle in a
+%% hyperlink and so never matches.
+\AtBeginDocument{%
+  \ifdefempty{\sib@lectureno}{}{%
+    \ifx\beamer@shorttitle\inserttitle
+      \def\beamer@shorttitle{Lecture~\sib@lectureno}%
+    \fi}}
+
+%% The title page prints \inserttitle; prefixing happens here so that the
+%% short title in the footline stays `Lecture 1' and not the whole heading.
+\newcommand{\sib@displaytitle}{%
+  \ifdefempty{\sib@lectureno}{\inserttitle}{Lecture~\sib@lectureno: \inserttitle}%
+}
+
+%% ---------------------------------------------------------------- title page --
+%% The base layout with two changes: the title carries the lecture number, and
+%% the teaching period follows the date.
+
+\setbeamertemplate{title page}{%
+  \vspace*{0.7cm}
+  \begin{minipage}{0.92\textwidth}
+    \raggedright
+    \ifdefempty{\sib@event}{}{%
+      {\color{white!78!uvaRed}\small\bfseries\sib@event\par}}%
+    \ifdefempty{\sib@eventdetail}{}{%
+      {\color{white!70!uvaRed}\scriptsize\sib@eventdetail\par}}%
+    \vspace{0.9cm}
+    {\color{white}\LARGE\bfseries\sib@displaytitle\par}
+    \ifx\insertsubtitle\@empty\else
+      \vspace{4pt}{\color{white!82!uvaRed}\large\insertsubtitle\par}%
+    \fi
+    \vspace{6pt}
+    {\color{white!55!uvaRed}\rule{0.18\textwidth}{1.2pt}\par}
+    \vspace{10pt}
+    {\color{white}\normalsize\insertauthor\par}
+    \vspace{2pt}
+    {\color{white!72!uvaRed}\footnotesize\insertinstitute\par}
+    \vspace{2pt}
+    {\color{white!72!uvaRed}\footnotesize\insertdate
+      \ifdefempty{\sib@term}{}{\ \textbar\ \sib@term}\par}
+  \end{minipage}%
+}
+
+%% ------------------------------------------------------------- environments --
+%% Colours: red for what must be remembered, grey for the scaffolding that
+%% points backwards or forwards, so that a glance at a slide separates the two.
+
+%% The one thing to carry out of the slide.  takeaway, from the base theme, is
+%% the untitled version of this.
+\newtcolorbox{keypoint}[2][]{%
+  enhanced,breakable=false,
+  colback=sib@boxbg,colframe=sib@accent,colbacktitle=sib@accent,
+  coltitle=white,fonttitle=\small\bfseries,fontupper=\small,
+  boxrule=0pt,leftrule=2.5pt,arc=1pt,outer arc=1pt,
+  left=8pt,right=8pt,top=5pt,bottom=5pt,
+  title={#2},#1}
+
+%% Where we were at the end of the previous lecture.
+\newtcolorbox{recap}[1][Where we left off]{%
+  enhanced,breakable=false,
+  colback=sib@panel,colframe=sib@mute,colbacktitle=sib@mute,
+  coltitle=white,fonttitle=\small\bfseries,fontupper=\small,
+  boxrule=0pt,leftrule=2.5pt,arc=1pt,outer arc=1pt,
+  left=8pt,right=8pt,top=5pt,bottom=5pt,
+  title={#1}}
+
+%% Where this is going, which the example lectures wrote as an alertblock
+%% titled `Coming Up'.
+\newtcolorbox{comingup}[1][Coming up]{%
+  enhanced,breakable=false,
+  colback=sib@panel,colframe=sib@accent,colbacktitle=sib@accent,
+  coltitle=white,fonttitle=\small\bfseries,fontupper=\small,
+  boxrule=0pt,leftrule=2.5pt,arc=1pt,outer arc=1pt,
+  left=8pt,right=8pt,top=5pt,bottom=5pt,
+  title={#1}}
+
+%% Numbered, because an exercise is referred to out loud: `the second one'.
+%% A frame with \pause is typeset once per overlay, so without
+%% \resetcounteronoverlays the counter advances on every overlay and the first
+%% exercise of a section comes out as 2.2 rather than 2.1.
+\newcounter{sibexercise}
+\resetcounteronoverlays{sibexercise}
+\newtcolorbox[use counter=sibexercise,number within=section]{exercise}[1][]{%
+  enhanced,breakable=false,
+  colback=sib@boxbg,colframe=sib@accent,colbacktitle=sib@accent,
+  coltitle=white,fonttitle=\small\bfseries,fontupper=\small,
+  boxrule=0pt,leftrule=2.5pt,arc=1pt,outer arc=1pt,
+  left=8pt,right=8pt,top=5pt,bottom=5pt,
+  title={Exercise~\thetcbcounter\ifstrempty{#1}{}{: #1}}}
+
+%% A solution is typeset only under the solutions option.  The body is
+%% captured by \NewEnviron rather than skipped by the comment package: Beamer
+%% reads a frame body once into a token list and replays it, and the
+%% line-scanning that \excludecomment does cannot survive that, which shows up
+%% as `Paragraph ended before \xComment was complete'.
+\newtcolorbox{sib@solutionbox}[1]{%
+  enhanced,breakable=false,
+  colback=sib@panel,colframe=sib@mute,colbacktitle=sib@mute,
+  coltitle=white,fonttitle=\small\bfseries,fontupper=\small,
+  boxrule=0pt,leftrule=2.5pt,arc=1pt,outer arc=1pt,
+  left=8pt,right=8pt,top=5pt,bottom=5pt,
+  title={#1}}
+
+%% Beamer already defines a theorem-like `solution', a block titled Solution
+%% that is always shown.  That is the same idea without the switch, so it is
+%% deliberately replaced rather than given a second, uglier name.
+\RenewEnviron{solution}[1][Solution]{%
+  \ifsib@solutions
+    \begin{sib@solutionbox}{#1}\BODY\end{sib@solutionbox}%
+  \fi}
+
+%% The learning objectives list: an itemize whose label says `you will be able
+%% to do this', rather than the neutral square of the body lists.
+\newlist{objectives}{itemize}{1}
+\setlist[objectives]{label=\textcolor{sib@accent}{\ding{51}},
+                     topsep=6pt,itemsep=5pt,parsep=0pt,leftmargin=*}
+
+\endinput
